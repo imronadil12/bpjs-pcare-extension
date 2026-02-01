@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PCARE Auto Input Helper",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Automate PCARE input with pause, resume, delay, and popup handling",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
