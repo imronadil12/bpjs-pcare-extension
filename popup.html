@@ -21,22 +21,7 @@
 <label>Delay (ms)</label>
 <input id="delay" type="number" min="300" step="100" placeholder="1200">
 
-<label>Start Index</label>
-<input id="startIndex" type="number" min="0" placeholder="0" value="0">
-
-<label>Current Running Index</label>
-<input id="currentIndex" type="number" min="0" placeholder="0" value="0" disabled>
-
-<label>Nomor (1 per baris)</label>
-<div class="number-input-group">
-  <textarea id="numbers" rows="6"></textarea>
-  <div class="number-options">
-    <input id="fileInput" type="file" accept=".txt,.csv" style="display: none;">
-    <button id="uploadBtn" title="Upload from file">📁 Upload</button>
-    <input id="urlInput" type="text" placeholder="Or paste URL" style="flex: 1;">
-    <button id="loadUrlBtn" title="Load from URL">🔗 Load</button>
-  </div>
-</div>
+<label style="margin-top: 12px; color: #16a34a; font-weight: 600;">Numbers will be fetched from API</label>
 
 <div class="buttons">
   <button id="start">Start</button>

@@ -3,6 +3,8 @@ const el = id => document.getElementById(id);
 let dates = [];
 let dateGoals = {}; // { date: ISO string, goal: number }
 
+const API_URL = "https://v0-pcare.vercel.app/api/next-number";
+
 // Convert YYYY-MM-DD string to ISO date string
 function formatDate(dateStr) {
   const date = new Date(dateStr);
@@ -27,37 +29,40 @@ function displayDate(isoDateStr) {
   return `${day}-${month}-${year}`;
 }
 
+// Fetch a number from API
+async function fetchNumberFromAPI() {
+  try {
+    const response = await fetch(API_URL);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    const data = await response.json();
+    if (!data.numbers) {
+      throw new Error("No number in API response");
+    }
+    return data.numbers;
+  } catch (err) {
+    console.error("❌ Failed to fetch from API:", err);
+    throw err;
+  }
+}
+
 /* ===============================
    LOAD SAVED STATE
 ================================ */
 chrome.storage.local.get(
-  ["tanggal", "dateGoals", "numbers", "delayMs", "progress", "dateIndex", "startIndex", "currentIndex"],
+  ["tanggal", "dateGoals", "delayMs", "progress", "dateIndex"],
   data => {
     dates = Array.isArray(data.tanggal) ? data.tanggal : [];
     dateGoals = data.dateGoals || {};
     el("tanggal").value = dates.map(d => displayDate(d)).join("\n");
     
-    if (data.numbers) el("numbers").value = data.numbers.join("\n");
     if (data.delayMs) el("delay").value = data.delayMs;
 
     if (data.progress) {
       el("status").innerText = data.progress.status || "Idle";
       el("counter").innerText =
         `${data.progress.done || 0} / ${data.progress.total || 0}`;
-    }
-    
-    // Set start index
-    if (data.startIndex !== undefined) {
-      el("startIndex").value = data.startIndex;
-    } else {
-      el("startIndex").value = 0;
-    }
-    
-    // Set current running index
-    if (data.currentIndex !== undefined) {
-      el("currentIndex").value = data.currentIndex;
-    } else {
-      el("currentIndex").value = 0;
     }
 
     const dateIdx = data.dateIndex || 0;
@@ -168,84 +173,19 @@ function removeDate(idx) {
 }
 
 /* ===============================
-   FILE UPLOAD
-================================ */
-el("uploadBtn").onclick = () => {
-  el("fileInput").click();
-};
-
-el("fileInput").onchange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const text = await file.text();
-  const numbers = text
-    .split("\n")
-    .map(n => n.trim())
-    .filter(Boolean);
-
-  el("numbers").value = numbers.join("\n");
-  console.log(`✅ Loaded ${numbers.length} numbers from file`);
-};
-
-/* ===============================
-   LOAD FROM URL
-================================ */
-el("loadUrlBtn").onclick = async () => {
-  const url = el("urlInput").value.trim();
-  
-  if (!url) {
-    alert("Masukkan URL terlebih dahulu");
-    return;
-  }
-
-  try {
-    el("loadUrlBtn").disabled = true;
-    el("loadUrlBtn").innerText = "⏳ Loading...";
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    
-    const text = await response.text();
-    const numbers = text
-      .split("\n")
-      .map(n => n.trim())
-      .filter(Boolean);
-
-    el("numbers").value = numbers.join("\n");
-    el("urlInput").value = "";
-    console.log(`✅ Loaded ${numbers.length} numbers from URL`);
-    alert(`✅ Loaded ${numbers.length} numbers`);
-  } catch (err) {
-    console.error("❌ Error loading URL:", err);
-    alert(`❌ Error: ${err.message}`);
-  } finally {
-    el("loadUrlBtn").disabled = false;
-    el("loadUrlBtn").innerText = "🔗 Load";
-  }
-}
-
-/* ===============================
    START
 ================================ */
 el("start").onclick = async () => {
-  const numbers = el("numbers").value
-    .split("\n")
-    .map(n => n.trim())
-    .filter(Boolean);
-
-  if (!dates.length || !numbers.length) {
-    alert("Tanggal & nomor wajib diisi");
+  if (!dates.length) {
+    alert("Pilih tanggal terlebih dahulu");
     return;
   }
 
   const delayMs = parseInt(el("delay").value, 10) || 1200;
-  const startIndex = parseInt(el("startIndex").value, 10) || 0;
+  const goal = dates.length > 0 ? dateGoals[dates[0]] || 0 : 0;
 
-  if (startIndex >= numbers.length) {
-    alert(`Start index (${startIndex}) must be less than total numbers (${numbers.length})`);
+  if (!goal) {
+    alert("Goal harus diset");
     return;
   }
 
@@ -253,22 +193,18 @@ el("start").onclick = async () => {
     tanggal: dates,
     dateGoals: dateGoals,
     delayMs,
-    numbers,
     paused: false,
     dateIndex: 0,
-    startIndex: startIndex,
-    currentIndex: startIndex,
     progress: {
-      done: startIndex,
-      total: dates.length > 0 ? dateGoals[dates[0]] || numbers.length : numbers.length,
+      done: 0,
+      total: goal,
       status: "running"
     }
   });
 
   el("status").innerText = "running";
   el("currentDate").innerText = `Date: ${displayDate(dates[0])}`;
-  el("currentIndex").value = startIndex;
-  el("counter").innerText = `${startIndex} / ${dateGoals[dates[0]] || numbers.length}`;
+  el("counter").innerText = `0 / ${goal}`;
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   chrome.tabs.sendMessage(tab.id, { action: "start" });
@@ -291,9 +227,10 @@ el("resume").onclick = async () => {
    NEXT DATE
 ================================ */
 el("nextDate").onclick = async () => {
-  const data = await chrome.storage.local.get(["tanggal", "dateIndex", "numbers"]);
+  const data = await chrome.storage.local.get(["tanggal", "dateIndex", "dateGoals"]);
   const datesToUse = data.tanggal || [];
   let dateIdx = data.dateIndex || 0;
+  const goalMap = data.dateGoals || {};
 
   if (dateIdx + 1 >= datesToUse.length) {
     alert("No more dates");
@@ -301,22 +238,22 @@ el("nextDate").onclick = async () => {
   }
 
   dateIdx += 1;
+  const nextDate = datesToUse[dateIdx];
+  const nextGoal = goalMap[nextDate] || 0;
 
   await chrome.storage.local.set({
     dateIndex: dateIdx,
-    currentIndex: 0,
     paused: false,
     progress: {
       done: 0,
-      total: data.numbers?.length || 0,
+      total: nextGoal,
       status: "running"
     }
   });
 
   el("status").innerText = "running";
-  el("currentDate").innerText = `Date: ${displayDate(datesToUse[dateIdx])}`;
-  el("currentIndex").value = 0;
-  el("counter").innerText = `0 / ${data.numbers?.length || 0}`;
+  el("currentDate").innerText = `Date: ${displayDate(nextDate)}`;
+  el("counter").innerText = `0 / ${nextGoal}`;
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   chrome.tabs.sendMessage(tab.id, { action: "start" });

@@ -297,15 +297,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 async function run() {
   running = true;
 
-  const { tanggal, numbers, delayMs = 1200, progress, dateIndex = 0, dateGoals = {}, startIndex = 0 } =
+  const { tanggal, delayMs = 1200, progress, dateIndex = 0, dateGoals = {} } =
     await chrome.storage.local.get([
       "tanggal",  
-      "numbers",
       "delayMs",
       "progress",
       "dateIndex",
-      "dateGoals",
-      "startIndex"
+      "dateGoals"
     ]);
 
   // Ensure tanggal is an array
@@ -319,11 +317,11 @@ async function run() {
 
   const currentDate = dates[dateIndex];
   const currentDateDisplay = formatISODateForDisplay(currentDate);
-  const goal = dateGoals[currentDate] || numbers.length;
+  const goal = dateGoals[currentDate] || 1;
 
-  let index = progress?.done || startIndex;
+  let index = progress?.done || 0;
 
-  console.log(`📅 Current date: ${currentDateDisplay} | Goal: ${goal} | Start: ${startIndex} | Current: ${index}`);
+  console.log(`📅 Current date: ${currentDateDisplay} | Goal: ${goal}`);
 
   /* ===============================
      DATE INPUT (ONCE)
@@ -343,18 +341,27 @@ async function run() {
 
   await sleep(delayMs);
 
-  for (; index < numbers.length && index < goal; index++) {
+  for (let i = 0; i < goal; i++) {
     const { paused } = await chrome.storage.local.get("paused");
     if (paused) {
       console.log("⏸️ Bot paused");
-      updateProgressOverlay("Paused", currentDate, nomor, index, goal);
+      updateProgressOverlay("Paused", currentDateDisplay, "-", index, goal);
       running = false;
       return;
     }
 
-    const nomor = numbers[index];
-    console.log(`▶ [${index + 1}/${goal}] Processing:`, nomor);
-    updateProgressOverlay("Running", currentDate, nomor, index, goal);
+    let nomor;
+    try {
+      nomor = await fetchNumberFromAPI();
+      console.log(`▶ [${index + 1}/${goal}] Fetched from API:`, nomor);
+    } catch (e) {
+      console.error(`❌ [${index + 1}/${goal}] Failed to fetch from API:`, e);
+      updateProgressOverlay("API Error", currentDateDisplay, "-", index, goal);
+      await sleep(delayMs);
+      continue;
+    }
+
+    updateProgressOverlay("Running", currentDateDisplay, nomor, index, goal);
 
     try {
       await clearPopups();
@@ -369,20 +376,22 @@ async function run() {
       await selectOptions();
       await sleep(delayMs * 2);
 
-      await updateProgress(index + 1, goal, "running");
-      console.log(`✅ [${index + 1}/${goal}] Success:`, nomor);
-      updateProgressOverlay("Running", currentDate, nomor, index + 1, goal);
+      index += 1;
+      await updateProgress(index, goal, "running");
+      console.log(`✅ [${index}/${goal}] Success:`, nomor);
+      updateProgressOverlay("Running", currentDateDisplay, nomor, index, goal);
     } catch (e) {
       console.error(`❌ [${index + 1}/${goal}] FAILED:`, nomor, e);
-      await updateProgress(index + 1, goal, "error");
-      updateProgressOverlay("Error", currentDate, nomor, index + 1, goal);
+      index += 1;
+      await updateProgress(index, goal, "error");
+      updateProgressOverlay("Error", currentDateDisplay, nomor, index, goal);
       // Continue to next number instead of stopping
       await sleep(delayMs);
     }
   }
 
   // Check if goal reached and there are more dates
-  if (index >= goal && dateIndex + 1 < dates.length) {
+  if (dateIndex + 1 < dates.length) {
     console.log(`✓ Goal reached for ${currentDateDisplay}. Moving to next date...`);
     updateProgressOverlay("Moving to next date...", currentDateDisplay, "-", goal, goal);
     await chrome.storage.local.set({
@@ -390,7 +399,7 @@ async function run() {
       paused: false,
       progress: {
         done: 0,
-        total: goal,
+        total: dateGoals[dates[dateIndex + 1]] || 1,
         status: "running"
       }
     });
@@ -408,6 +417,24 @@ async function run() {
 /* ===============================
    HELPERS
 ================================ */
+async function fetchNumberFromAPI() {
+  const API_URL = "https://v0-pcare.vercel.app/api/next-number";
+  try {
+    const response = await fetch(API_URL);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    const data = await response.json();
+    if (!data.numbers) {
+      throw new Error("No number in API response");
+    }
+    return data.numbers;
+  } catch (err) {
+    console.error("❌ Failed to fetch from API:", err);
+    throw err;
+  }
+}
+
 async function updateProgress(done, total, status) {
   await chrome.storage.local.set({
     progress: { done, total, status },
