@@ -1,21 +1,21 @@
 {
   "manifest_version": 3,
   "name": "PCARE Auto Input Helper",
-  "version": "1.2.2",
-  "description": "Automate PCARE input with pause, resume, delay, and popup handling",
+  "version": "1.2.3",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
     "https://pcarejkn.bpjs-kesehatan.go.id/*",
     "https://v0-pcare.vercel.app/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html"
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://pcarejkn.bpjs-kesehatan.go.id/*"
-      ],
+      "matches": ["https://pcarejkn.bpjs-kesehatan.go.id/*"],
       "js": ["content.js"]
     }
   ]

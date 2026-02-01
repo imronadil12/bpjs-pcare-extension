@@ -417,23 +417,27 @@ async function run() {
 /* ===============================
    HELPERS
 ================================ */
-async function fetchNumberFromAPI() {
-  const API_URL = "https://v0-pcare.vercel.app/api/next-number";
-  try {
-    const response = await fetch(API_URL);
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    const data = await response.json();
-    if (!data.numbers) {
-      throw new Error("No number in API response");
-    }
-    return data.numbers;
-  } catch (err) {
-    console.error("❌ Failed to fetch from API:", err);
-    throw err;
-  }
+function fetchNumberFromAPI() {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { action: "fetchNextNumber" },
+      response => {
+        if (chrome.runtime.lastError) {
+          return reject(chrome.runtime.lastError);
+        }
+
+        if (!response || !response.success) {
+          return reject(
+            new Error(response?.error || "Failed to fetch")
+          );
+        }
+
+        resolve(response.number);
+      }
+    );
+  });
 }
+
 
 async function updateProgress(done, total, status) {
   await chrome.storage.local.set({
