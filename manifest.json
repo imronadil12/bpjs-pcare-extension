@@ -1,15 +1,13 @@
 {
   "manifest_version": 3,
   "name": "PCARE Auto Input Helper",
-  "version": "1.2.3",
+  "version": "1.3.0",
+  "description": "Automate PCARE input",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
     "https://pcarejkn.bpjs-kesehatan.go.id/*",
     "https://v0-pcare.vercel.app/*"
   ],
-  "background": {
-    "service_worker": "background.js"
-  },
   "action": {
     "default_popup": "popup.html"
   },
