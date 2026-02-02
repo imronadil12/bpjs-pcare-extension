@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "PCARE Auto Input Helper",
-  "version": "1.3.0",
-  "description": "Automate PCARE input",
+  "version": "1.4.0",
+  "description": "Automate PCARE input with Sehat/Konseling support",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
     "https://pcarejkn.bpjs-kesehatan.go.id/*",

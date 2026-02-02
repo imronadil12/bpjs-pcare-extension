@@ -1,177 +1,21 @@
-body {
-  font-family: system-ui, sans-serif;
-  padding: 12px;
-  width: 320px;
-  background: #f9fafb;
-}
-
-h2 {
-  margin: 0 0 10px;
-  font-size: 16px;
-}
-
-label {
-  font-size: 12px;
-  margin-top: 8px;
-  display: block;
-  color: #444;
-}
-
-input, textarea {
-  width: 100%;
-  padding: 6px;
-  font-size: 13px;
-  margin-top: 4px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-textarea {
-  resize: vertical;
-}
-
-.number-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.number-options {
-  display: flex;
-  gap: 6px;
-}
-
-#uploadBtn {
-  flex: 0 0 auto;
-  padding: 6px 8px;
-  background: #8b5cf6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-#uploadBtn:hover {
-  background: #7c3aed;
-}
-
-#urlInput {
-  flex: 1;
-  padding: 6px;
-  font-size: 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-#loadUrlBtn {
-  flex: 0 0 auto;
-  padding: 6px 8px;
-  background: #06b6d4;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-#loadUrlBtn:hover {
-  background: #0891b2;
-}
-
-.date-input-group {
-  display: flex;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-#datePickerInput {
-  flex: 1;
-  margin-top: 0;
-}
-
-#goalInput {
-  flex: 0 0 70px;
-  margin-top: 0;
-}
-
-#addDateBtn {
-  flex: 0 0 50px;
-  padding: 6px;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  margin-top: 0;
-}
-
-#addDateBtn:hover {
-  background: #2563eb;
-}
-
-.date-tags-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 6px;
-  min-height: 24px;
-}
-
-.date-tag {
-  background: #dbeafe;
-  color: #1e40af;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.date-tag button {
-  background: none;
-  border: none;
-  color: #1e40af;
-  cursor: pointer;
-  padding: 0;
-  font-size: 14px;
-  line-height: 1;
-  flex: 0 0 auto;
-}
-
-.date-tag button:hover {
-  color: #dc2626;
-}
-
-.buttons {
-  display: flex;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-button {
-  flex: 1;
-  padding: 6px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
-
-#start { background: #2563eb; color: white; }
-#pause { background: #f59e0b; color: white; }
-#resume { background: #16a34a; color: white; }
-#nextDate { background: #7c3aed; color: white; font-size: 11px; }
-
-.progress {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #333;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+body { font-family: system-ui, sans-serif; padding: 15px; width: 320px; background: #f9fafb; }
+h2 { margin: 0 0 15px; font-size: 16px; color: #111; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+label { font-size: 12px; margin-top: 10px; display: block; color: #555; font-weight: 500; }
+input { width: 100%; padding: 8px; font-size: 13px; margin-top: 4px; border-radius: 6px; border: 1px solid #d1d5db; box-sizing: border-box; }
+.date-input-group { display: flex; gap: 6px; margin-top: 4px; }
+#datePickerInput { flex: 1; }
+#goalInput { flex: 0 0 60px; }
+#addDateBtn { flex: 0 0 50px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; }
+.date-tags-container { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; min-height: 20px; }
+.date-tag { background: #eff6ff; color: #1e40af; padding: 4px 8px; border-radius: 4px; font-size: 11px; display: flex; align-items: center; gap: 6px; border: 1px solid #bfdbfe; }
+.date-tag button { background: none; border: none; color: #ef4444; font-weight: bold; cursor: pointer; padding: 0; font-size: 14px; line-height: 1; }
+.buttons { display: flex; gap: 6px; margin-top: 15px; }
+button { flex: 1; padding: 8px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; color: white; transition: opacity 0.2s; }
+button:hover { opacity: 0.9; }
+#start { background: #059669; }
+#pause { background: #d97706; }
+#resume { background: #2563eb; }
+#nextDate { background: #7c3aed; }
+.progress { margin-top: 15px; background: #fff; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb; }
+.p-item { font-size: 12px; color: #374151; margin-bottom: 4px; display: flex; justify-content: space-between; }
+.p-item span { font-weight: 600; }

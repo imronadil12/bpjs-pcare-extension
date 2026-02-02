@@ -6,36 +6,33 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
+  <h2>PCARE Helper v1.4</h2>
 
-<h2>PCARE Helper</h2>
+  <label>Add Date & Goal</label>
+  <div class="date-input-group">
+    <input id="datePickerInput" type="date">
+    <input id="goalInput" type="number" min="1" placeholder="Goal" value="50">
+    <button id="addDateBtn">Add</button>
+  </div>
+  
+  <div id="dateTagsContainer" class="date-tags-container"></div>
 
-<label>Tanggal</label>
-<div class="date-input-group">
-  <input id="datePickerInput" type="date">
-  <input id="goalInput" type="number" min="1" placeholder="Goal" value="500">
-  <button id="addDateBtn">Add</button>
-</div>
-<div id="dateTagsContainer" class="date-tags-container"></div>
-<textarea id="tanggal" rows="2" placeholder="Or paste dates (one per line, DD-MM-YYYY)" style="display: none;"></textarea>
+  <label>Delay (ms)</label>
+  <input id="delay" type="number" min="500" step="100" value="1200">
 
-<label>Delay (ms)</label>
-<input id="delay" type="number" min="300" step="100" placeholder="1200">
+  <div class="buttons">
+    <button id="start">Start</button>
+    <button id="pause">Pause</button>
+    <button id="resume">Resume</button>
+    <button id="nextDate">Next Date</button>
+  </div>
 
-<label style="margin-top: 12px; color: #16a34a; font-weight: 600;">Numbers will be fetched from API</label>
+  <div class="progress">
+    <div class="p-item">Status: <span id="status">Idle</span></div>
+    <div class="p-item"><span id="currentDate">Date: -</span></div>
+    <div class="p-item">Count: <span id="counter">0 / 0</span></div>
+  </div>
 
-<div class="buttons">
-  <button id="start">Start</button>
-  <button id="pause">Pause</button>
-  <button id="resume">Resume</button>
-  <button id="nextDate">Next Date</button>
-</div>
-
-<div class="progress">
-  <div id="status">Idle</div>
-  <div id="currentDate">Date: -</div>
-  <div id="counter">0 / 0</div>
-</div>
-
-<script src="popup.js"></script>
+  <script src="popup.js"></script>
 </body>
 </html>

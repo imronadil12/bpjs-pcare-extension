@@ -1,260 +1,122 @@
 const el = id => document.getElementById(id);
-
 let dates = [];
-let dateGoals = {}; // { date: ISO string, goal: number }
+let dateGoals = {};
 
-const API_URL = "https://v0-pcare.vercel.app/api/next-number";
+// Helpers
+const formatDateISO = (dateStr) => new Date(dateStr).toISOString();
+const displayDate = (isoDateStr) => {
+  const d = new Date(isoDateStr);
+  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth()+1).padStart(2, '0')}-${d.getFullYear()}`;
+};
 
-// Convert YYYY-MM-DD string to ISO date string
-function formatDate(dateStr) {
-  const date = new Date(dateStr);
-  return date.toISOString();
-}
-
-// Convert ISO date string to YYYY-MM-DD for input
-function parseDateForInput(isoDateStr) {
-  const date = new Date(isoDateStr);
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-// Format ISO date for display (DD-MM-YYYY)
-function displayDate(isoDateStr) {
-  const date = new Date(isoDateStr);
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const year = date.getUTCFullYear();
-  return `${day}-${month}-${year}`;
-}
-
-// Fetch a number from API
-async function fetchNumberFromAPI() {
-  try {
-    const response = await fetch(API_URL);
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    const data = await response.json();
-    if (!data.numbers) {
-      throw new Error("No number in API response");
-    }
-    return data.numbers;
-  } catch (err) {
-    console.error("❌ Failed to fetch from API:", err);
-    throw err;
-  }
-}
-
-/* ===============================
-   LOAD SAVED STATE
-================================ */
-chrome.storage.local.get(
-  ["tanggal", "dateGoals", "delayMs", "progress", "dateIndex"],
-  data => {
-    dates = Array.isArray(data.tanggal) ? data.tanggal : [];
+// Update UI from Storage
+function updateUI() {
+  chrome.storage.local.get(null, (data) => {
+    dates = data.tanggal || [];
     dateGoals = data.dateGoals || {};
-    el("tanggal").value = dates.map(d => displayDate(d)).join("\n");
-    
-    if (data.delayMs) el("delay").value = data.delayMs;
+    const idx = data.dateIndex || 0;
+    const prog = data.progress || { done: 0, total: 0, status: "Idle" };
 
-    if (data.progress) {
-      el("status").innerText = data.progress.status || "Idle";
-      el("counter").innerText =
-        `${data.progress.done || 0} / ${data.progress.total || 0}`;
-    }
+    el("status").innerText = prog.status;
+    el("counter").innerText = `${prog.done} / ${prog.total}`;
+    el("currentDate").innerText = dates[idx] ? `Date: ${displayDate(dates[idx])}` : "Date: -";
+    el("delay").value = data.delayMs || 1200;
 
-    const dateIdx = data.dateIndex || 0;
-    if (dates[dateIdx]) {
-      el("currentDate").innerText = `Date: ${displayDate(dates[dateIdx])}`;
-    }
+    renderTags();
+  });
+}
 
-    renderDateTags();
-  }
-);
-
-/* ===============================
-   RENDER DATE TAGS
-================================ */
-function renderDateTags() {
+function renderTags() {
   const container = el("dateTagsContainer");
   container.innerHTML = "";
-  
-  dates.forEach((date, idx) => {
-    const goal = dateGoals[date] || "-";
-    const tag = document.createElement("div");
-    tag.className = "date-tag";
-    
-    const tagText = document.createElement("span");
-    tagText.textContent = `${displayDate(date)} (Goal: ${goal})`;
-    
-    const removeBtn = document.createElement("button");
-    removeBtn.type = "button";
-    removeBtn.textContent = "×";
-    removeBtn.onclick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      removeDate(idx);
-    };
-    
-    tag.appendChild(tagText);
-    tag.appendChild(removeBtn);
-    container.appendChild(tag);
+  dates.forEach((d, i) => {
+    const div = document.createElement("div");
+    div.className = "date-tag";
+    div.innerHTML = `<span>${displayDate(d)} (Goal: ${dateGoals[d]||0})</span> <button data-idx="${i}">×</button>`;
+    div.querySelector("button").onclick = () => removeDate(i);
+    container.appendChild(div);
   });
 }
 
-/* ===============================
-   ADD DATE
-================================ */
+// Actions
 el("addDateBtn").onclick = () => {
-  const dateValue = el("datePickerInput").value;
-  const goalValue = el("goalInput").value;
-  
-  if (!dateValue) {
-    alert("Pilih tanggal terlebih dahulu");
-    return;
-  }
-  
-  if (!goalValue) {
-    alert("Masukkan goal terlebih dahulu");
-    return;
-  }
-  
-  const formattedDate = formatDate(dateValue);
-  
-  if (!dates.includes(formattedDate)) {
-    dates.push(formattedDate);
-    dateGoals[formattedDate] = parseInt(goalValue, 10);
-    el("tanggal").value = dates.map(d => displayDate(d)).join("\n");
-    renderDateTags();
-    el("datePickerInput").value = "";
-    el("goalInput").value = "";
-    
-    // Save to Chrome storage
-    chrome.storage.local.set({
-      tanggal: dates,
-      dateGoals: dateGoals
-    });
-    
-    console.log(`✅ Date added: ${displayDate(formattedDate)}`);
-  }
+  const dVal = el("datePickerInput").value;
+  const gVal = parseInt(el("goalInput").value);
+  if (!dVal || isNaN(gVal)) return alert("Invalid Input");
+
+  const iso = formatDateISO(dVal);
+  chrome.storage.local.get(["tanggal", "dateGoals"], data => {
+    const newDates = data.tanggal || [];
+    const newGoals = data.dateGoals || {};
+    if (!newDates.includes(iso)) {
+      newDates.push(iso);
+      newGoals[iso] = gVal;
+      chrome.storage.local.set({ tanggal: newDates, dateGoals: newGoals }, () => {
+        updateUI();
+        el("datePickerInput").value = "";
+      });
+    }
+  });
 };
 
-/* ===============================
-   REMOVE DATE
-================================ */
-function removeDate(idx) {
-  if (idx < 0 || idx >= dates.length) {
-    console.error(`❌ Invalid index: ${idx}`);
-    return;
-  }
-  
-  const dateToRemove = dates[idx];
-  const displayDateRemoved = displayDate(dateToRemove);
-  
-  // Remove from dates array
-  dates.splice(idx, 1);
-  
-  // Remove from goals object
-  delete dateGoals[dateToRemove];
-  
-  // Update UI
-  el("tanggal").value = dates.map(d => displayDate(d)).join("\n");
-  renderDateTags();
-  
-  // Save to Chrome storage
-  chrome.storage.local.set({
-    tanggal: dates,
-    dateGoals: dateGoals
-  }, () => {
-    console.log(`✅ Date removed: ${displayDateRemoved}`);
+function removeDate(index) {
+  chrome.storage.local.get(["tanggal", "dateGoals"], data => {
+    const newDates = [...(data.tanggal || [])];
+    const newGoals = {...(data.dateGoals || {})};
+    const removed = newDates.splice(index, 1)[0];
+    delete newGoals[removed];
+    chrome.storage.local.set({ tanggal: newDates, dateGoals: newGoals }, updateUI);
   });
 }
 
-/* ===============================
-   START
-================================ */
-el("start").onclick = async () => {
-  if (!dates.length) {
-    alert("Pilih tanggal terlebih dahulu");
-    return;
-  }
+el("start").onclick = () => {
+  chrome.storage.local.get(["tanggal", "dateGoals"], data => {
+    if (!data.tanggal?.length) return alert("No dates!");
+    const first = data.tanggal[0];
+    const goal = data.dateGoals[first];
+    const delay = parseInt(el("delay").value) || 1200;
 
-  const delayMs = parseInt(el("delay").value, 10) || 1200;
-  const goal = dates.length > 0 ? dateGoals[dates[0]] || 0 : 0;
-
-  if (!goal) {
-    alert("Goal harus diset");
-    return;
-  }
-
-  await chrome.storage.local.set({
-    tanggal: dates,
-    dateGoals: dateGoals,
-    delayMs,
-    paused: false,
-    dateIndex: 0,
-    progress: {
-      done: 0,
-      total: goal,
-      status: "running"
-    }
+    chrome.storage.local.set({
+      paused: false,
+      dateIndex: 0,
+      delayMs: delay,
+      progress: { done: 0, total: goal, status: "running" }
+    }, () => {
+      chrome.tabs.query({active:true, currentWindow:true}, tabs => {
+        if(tabs[0]) chrome.tabs.sendMessage(tabs[0].id, {action: "start"});
+      });
+      updateUI();
+    });
   });
-
-  el("status").innerText = "running";
-  el("currentDate").innerText = `Date: ${displayDate(dates[0])}`;
-  el("counter").innerText = `0 / ${goal}`;
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  chrome.tabs.sendMessage(tab.id, { action: "start" });
 };
 
-/* ===============================
-   PAUSE / RESUME
-================================ */
-el("pause").onclick = () =>
-  chrome.storage.local.set({ paused: true });
-
-el("resume").onclick = async () => {
-  await chrome.storage.local.set({ paused: false });
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  chrome.tabs.sendMessage(tab.id, { action: "resume" });
-};
-
-/* ===============================
-   NEXT DATE
-================================ */
-el("nextDate").onclick = async () => {
-  const data = await chrome.storage.local.get(["tanggal", "dateIndex", "dateGoals"]);
-  const datesToUse = data.tanggal || [];
-  let dateIdx = data.dateIndex || 0;
-  const goalMap = data.dateGoals || {};
-
-  if (dateIdx + 1 >= datesToUse.length) {
-    alert("No more dates");
-    return;
-  }
-
-  dateIdx += 1;
-  const nextDate = datesToUse[dateIdx];
-  const nextGoal = goalMap[nextDate] || 0;
-
-  await chrome.storage.local.set({
-    dateIndex: dateIdx,
-    paused: false,
-    progress: {
-      done: 0,
-      total: nextGoal,
-      status: "running"
-    }
+el("pause").onclick = () => chrome.storage.local.set({paused: true}, updateUI);
+el("resume").onclick = () => {
+  chrome.storage.local.set({paused: false}, () => {
+    chrome.tabs.query({active:true, currentWindow:true}, tabs => {
+      if(tabs[0]) chrome.tabs.sendMessage(tabs[0].id, {action: "resume"});
+    });
+    updateUI();
   });
-
-  el("status").innerText = "running";
-  el("currentDate").innerText = `Date: ${displayDate(nextDate)}`;
-  el("counter").innerText = `0 / ${nextGoal}`;
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  chrome.tabs.sendMessage(tab.id, { action: "start" });
 };
+
+el("nextDate").onclick = () => {
+  chrome.storage.local.get(["tanggal", "dateIndex", "dateGoals"], data => {
+    const nextIdx = (data.dateIndex || 0) + 1;
+    if (nextIdx >= (data.tanggal || []).length) return alert("No more dates");
+    
+    const nextDate = data.tanggal[nextIdx];
+    chrome.storage.local.set({
+      paused: false,
+      dateIndex: nextIdx,
+      progress: { done: 0, total: data.dateGoals[nextDate], status: "running" }
+    }, () => {
+       chrome.tabs.query({active:true, currentWindow:true}, tabs => {
+        if(tabs[0]) chrome.tabs.sendMessage(tabs[0].id, {action: "start"});
+      });
+      updateUI();
+    });
+  });
+};
+
+document.addEventListener("DOMContentLoaded", updateUI);
