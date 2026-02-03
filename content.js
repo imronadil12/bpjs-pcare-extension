@@ -12,17 +12,14 @@ function createProgressOverlay() {
   overlay.innerHTML = `
     <div class="progress-card">
       <div class="progress-header">
-        <h3>🤖 PCARE Bot</h3>
+        <h3>⚡ PCARE Turbo</h3>
         <button id="toggleOverlay" class="toggle-btn">−</button>
       </div>
       <div class="progress-content">
         <div class="progress-item"><label>Status:</label><span id="overlayStatus">Idle</span></div>
         <div class="progress-item"><label>Date:</label><span id="overlayDate">-</span></div>
+        <div class="progress-item"><label>Remaining:</label><span id="overlayGoal" style="font-weight:bold; color:red;">0</span></div>
         <div class="progress-item"><label>Current:</label><span id="overlayCurrent">-</span></div>
-        <div class="progress-item"><label>Progress:</label><span id="overlayProgress">0/0</span></div>
-        <div class="progress-bar">
-          <div id="overlayProgressBar" class="progress-fill"></div>
-        </div>
       </div>
     </div>
   `;
@@ -30,13 +27,11 @@ function createProgressOverlay() {
   const style = document.createElement("style");
   style.textContent = `
     #pcare-progress-overlay { position: fixed; bottom: 20px; right: 20px; z-index: 999999; font-family: system-ui; }
-    .progress-card { background: white; border: 2px solid #2563eb; border-radius: 8px; min-width: 260px; box-shadow: 0 4px 12px rgba(0,0,0,.15); overflow: hidden; }
-    .progress-header { background: #2563eb; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .progress-card { background: white; border: 2px solid #ef4444; border-radius: 8px; min-width: 260px; box-shadow: 0 4px 12px rgba(0,0,0,.15); overflow: hidden; }
+    .progress-header { background: #ef4444; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
     .toggle-btn { border: none; background: rgba(255,255,255,.3); color: white; width: 22px; height: 22px; border-radius: 4px; cursor: pointer; }
     .progress-content { padding: 10px; }
-    .progress-item { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; color: #333; }
-    .progress-bar { height: 18px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
-    .progress-fill { height: 100%; background: linear-gradient(90deg,#2563eb,#0891b2); width: 0%; color: white; font-size: 10px; display: flex; align-items: center; justify-content: center; transition: width 0.3s ease; }
+    .progress-item { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: #333; }
   `;
 
   document.head.appendChild(style);
@@ -50,11 +45,9 @@ function createProgressOverlay() {
   return overlay;
 }
 
-function updateProgressOverlay(status, date, current, done, total) {
+function updateProgressOverlay(status, date, current, goal) {
   createProgressOverlay();
-  const percent = total ? Math.round((done / total) * 100) : 0;
   
-  // Display Date as dd-mm-yyyy
   let displayDate = "-";
   if (date) {
     const d = new Date(date);
@@ -64,10 +57,7 @@ function updateProgressOverlay(status, date, current, done, total) {
   document.getElementById("overlayStatus").textContent = status;
   document.getElementById("overlayDate").textContent = displayDate;
   document.getElementById("overlayCurrent").textContent = current || "-";
-  document.getElementById("overlayProgress").textContent = `${done}/${total}`;
-  const bar = document.getElementById("overlayProgressBar");
-  bar.style.width = percent + "%";
-  bar.textContent = percent > 10 ? percent + "%" : "";
+  document.getElementById("overlayGoal").textContent = goal;
 }
 
 /* ===============================
@@ -81,76 +71,106 @@ async function fetchNumberFromAPI() {
 }
 
 /* ===============================
-   DOM HELPERS (TARGETED)
+   DOM HELPERS
 ================================ */
 
-// UPDATED: Format is now dd-mm-yyyy
-async function inputTanggal(isoDate) {
+function inputTanggal(isoDate) {
   const input = document.getElementById("txttanggal");
-  if (!input) throw new Error("Date input (#txttanggal) not found");
-
+  if (!input) return;
   const d = new Date(isoDate);
-  // Format: dd-MM-yyyy (e.g., 25-10-2023)
   const val = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-  
   input.value = val;
   input.dispatchEvent(new Event("input", { bubbles: true }));
   input.dispatchEvent(new Event("change", { bubbles: true }));
   input.dispatchEvent(new Event("blur", { bubbles: true }));
 }
 
-async function inputNoPencarian(nomor) {
+function inputNoPencarian(nomor) {
   const input = document.getElementById("txtnokartu");
-  if (!input) throw new Error("Input (#txtnokartu) not found");
-
+  if (!input) return;
   input.value = nomor;
   input.dispatchEvent(new Event("input", { bubbles: true }));
   input.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-async function clickCari() {
-  const btn = document.getElementById("btnCariPeserta");
-  if (btn) btn.click();
+function clickCari() {
+  document.getElementById("btnCariPeserta")?.click();
 }
 
-async function handleUpdateNIKModal() {
-  const btn = document.querySelector("#batalNIKSubmit_btn");
-  if (btn) btn.click();
-}
-
-async function selectKunjunganOptions() {
-  // 1. Kunjungan Sehat (value="false")
-  const sehat = document.querySelector('input[name="kunjSakitF"][value="false"]');
-  if (sehat) {
-    sehat.click();
-    sehat.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-
-  // 2. Promotif Preventif (value="50")
-  const promotif = document.getElementById("tkp50");
-  if (promotif) {
-    promotif.click();
-    promotif.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-}
-
-async function selectPoli() {
-  const select = document.getElementById("poli");
-  if (select) {
-    select.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-}
-
-async function clickSimpan() {
+function clickSimpan() {
   const btn = document.getElementById("btnSimpanPendaftaran");
-  if (btn && !btn.disabled) {
-    btn.click();
-  }
+  if (btn && !btn.disabled) btn.click();
 }
 
-async function clearPopups() {
-  document.querySelectorAll(".modal-backdrop, .modal.show").forEach(e => e.remove());
-  document.body.classList.remove("modal-open");
+function handleUpdateNIKModal() {
+  document.querySelector("#batalNIKSubmit_btn")?.click();
+}
+
+function setOptions() {
+  const sehat = document.querySelector('input[name="kunjSakitF"][value="false"]');
+  if (sehat) { sehat.click(); sehat.dispatchEvent(new Event("change", { bubbles: true })); }
+  
+  const promotif = document.getElementById("tkp50");
+  if (promotif) { promotif.click(); promotif.dispatchEvent(new Event("change", { bubbles: true })); }
+
+  const select = document.getElementById("poli");
+  if (select) { select.value = "021"; select.dispatchEvent(new Event("change", { bubbles: true })); }
+}
+
+/* ===============================
+   SMART WAITERS
+================================ */
+
+function deleteBlockingModals() {
+  const modals = document.querySelectorAll(".modal.in, .modal.show, .bootbox");
+  if (modals.length > 0) {
+    let deleted = false;
+    modals.forEach(m => {
+      const t = m.innerText.toUpperCase();
+      if (t.includes("SKRINING") || t.includes("WARNING") || t.includes("SIP") || 
+          t.includes("PAKTA") || t.includes("BERHASIL") || t.includes("SUCCESS") ||
+          t.includes("TIDAK AKTIF") || t.includes("NON AKTIF") || t.includes("MENGHAPUS") || t.includes("TIDAK TERDAFTAR")) {
+        m.remove();
+        deleted = true;
+      }
+    });
+    
+    if (deleted) {
+      document.querySelectorAll(".modal-backdrop").forEach(e => e.remove());
+      document.body.classList.remove("modal-open");
+      return true;
+    }
+  }
+  return false;
+}
+
+async function waitForSearchLoad() {
+  return new Promise(resolve => {
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      const nameLabel = document.getElementById("lblnmpst");
+      if ((nameLabel && nameLabel.innerText.length > 1 && nameLabel.innerText !== "-") || deleteBlockingModals()) {
+        clearInterval(interval);
+        resolve();
+      }
+      if (attempts > 30) { clearInterval(interval); resolve(); }
+    }, 100);
+  });
+}
+
+async function waitForSaveCompletion() {
+  return new Promise(resolve => {
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (deleteBlockingModals()) {
+        clearInterval(interval);
+        resolve();
+      }
+      if (attempts > 40) { clearInterval(interval); resolve(); }
+    }, 100);
+  });
 }
 
 /* ===============================
@@ -160,79 +180,85 @@ async function run() {
   if (running) return;
   running = true;
 
+  deleteBlockingModals();
+
   while (running) {
     const data = await chrome.storage.local.get(null);
-    const { tanggal = [], delayMs = 1200, progress, dateIndex = 0, dateGoals = {}, paused } = data;
+    let { tanggal = [], dateGoals = {}, paused } = data;
 
+    // Check Pause
     if (paused) {
       running = false;
-      updateProgressOverlay("Paused", tanggal[dateIndex], "PAUSED", progress?.done || 0, dateGoals[tanggal[dateIndex]] || 0);
+      const current = tanggal.length > 0 ? tanggal[0] : "-";
+      updateProgressOverlay("Paused", current, "PAUSED", dateGoals[current] || 0);
       return;
     }
 
-    const currentDate = tanggal[dateIndex];
-    if (!currentDate) {
-      updateProgressOverlay("Finished", null, "DONE", 0, 0);
+    // Check if list is empty
+    if (tanggal.length === 0) {
+      updateProgressOverlay("All Finished!", null, "DONE", 0);
       running = false;
       return;
     }
 
-    const goal = dateGoals[currentDate] || 0;
-    let done = progress?.done || 0;
+    // Get First Date and Goal
+    const currentDate = tanggal[0];
+    let currentGoal = dateGoals[currentDate] || 0;
 
-    if (done >= goal) {
-      if (dateIndex + 1 < tanggal.length) {
-        await chrome.storage.local.set({
-          dateIndex: dateIndex + 1,
-          progress: { done: 0, total: dateGoals[tanggal[dateIndex + 1]], status: "running" }
-        });
-        continue;
-      } else {
-        updateProgressOverlay("All Done", null, "DONE", goal, goal);
-        running = false;
-        return;
-      }
+    // --- CHECK COMPLETION (Countdown Logic) ---
+    // If goal is 0 or less, we are done with this date
+    if (currentGoal <= 0) {
+      // 1. Remove date from list
+      tanggal.shift();
+      // 2. Remove goal from storage object
+      delete dateGoals[currentDate];
+
+      // 3. Save clean state
+      await chrome.storage.local.set({
+        tanggal: tanggal,
+        dateGoals: dateGoals
+      });
+
+      updateProgressOverlay("Date Done!", currentDate, "Moving Next...", 0);
+      await sleep(1000);
+      continue;
     }
 
+    // --- PROCESS PATIENT ---
     try {
-      updateProgressOverlay("Fetching...", currentDate, "-", done, goal);
+      updateProgressOverlay("Fetching...", currentDate, "-", currentGoal);
       const nomor = await fetchNumberFromAPI();
-      updateProgressOverlay("Working...", currentDate, nomor, done, goal);
-
-      await clearPopups();
-
-      // 1. Set Date (dd-mm-yyyy)
-      await inputTanggal(currentDate);
-      await sleep(500);
-
-      // 2. Input Number & Search
-      await inputNoPencarian(nomor);
-      await sleep(delayMs);
-      await clickCari();
       
-      // 3. Wait for load
-      await sleep(delayMs * 1.5);
-      await handleUpdateNIKModal();
+      updateProgressOverlay("Working...", currentDate, nomor, currentGoal);
+      deleteBlockingModals();
 
-      // 4. Set Options
-      await selectKunjunganOptions();
-      await sleep(500);
-      await selectPoli();
-      await sleep(delayMs);
+      // Input
+      inputTanggal(currentDate);
+      inputNoPencarian(nomor);
+      
+      // Search
+      clickCari();
+      await waitForSearchLoad(); 
+      handleUpdateNIKModal();
 
-      // 5. Save
-      await clickSimpan();
-      await sleep(delayMs);
+      // Options
+      setOptions();
 
-      done++;
+      // Save
+      clickSimpan();
+      await waitForSaveCompletion();
+
+      // --- DECREMENT GOAL ---
+      currentGoal--;
+      dateGoals[currentDate] = currentGoal;
+
       await chrome.storage.local.set({
-        progress: { done: done, total: goal, status: "running" }
+        dateGoals: dateGoals
       });
 
     } catch (e) {
       console.error("Bot Error:", e);
-      updateProgressOverlay("Error", currentDate, "Retry", done, goal);
-      await sleep(3000);
+      await sleep(2000); 
     }
   }
 }
